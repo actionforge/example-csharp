@@ -1,0 +1,107 @@
+entry: gh-start
+nodes:
+  - id: gh-start
+    type: core/gh-start@v1
+    position:
+      x: -150
+      y: 20
+  - id: checkout
+    type: github.com/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    position:
+      x: 270
+      y: 660
+  - id: setup-dotnet
+    type: github.com/actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309
+    position:
+      x: 810
+      y: 610
+    inputs:
+      dotnet-version: '9.0'
+  - id: build
+    type: core/run@v1
+    position:
+      x: 1290
+      y: 540
+    inputs:
+      script: dotnet publish -c Release -o build/
+  - id: upload-artifact
+    type: >-
+      github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+    position:
+      x: 1720
+      y: 460
+    inputs:
+      name: hello-world
+      path: build/
+  - id: print
+    type: core/print@v1
+    position:
+      x: 2600
+      y: 420
+    inputs:
+      values[0]: null
+      color: fg_green
+  - id: string-fmt
+    type: core/string-fmt@v1
+    position:
+      x: 2200
+      y: 620
+    inputs:
+      substitutes[0]: null
+      fmt: "\U0001F449 %v"
+connections:
+  - src:
+      node: upload-artifact
+      port: artifact-url
+    dst:
+      node: string-fmt
+      port: substitutes[0]
+  - src:
+      node: string-fmt
+      port: result
+    dst:
+      node: print
+      port: values[0]
+executions:
+  - src:
+      node: gh-start
+      port: exec-on_push
+    dst:
+      node: checkout
+      port: exec
+  - src:
+      node: gh-start
+      port: exec-on_pull_request
+    dst:
+      node: checkout
+      port: exec
+  - src:
+      node: gh-start
+      port: exec-on_workflow_dispatch
+    dst:
+      node: checkout
+      port: exec
+  - src:
+      node: checkout
+      port: exec-success
+    dst:
+      node: setup-dotnet
+      port: exec
+  - src:
+      node: setup-dotnet
+      port: exec-success
+    dst:
+      node: build
+      port: exec
+  - src:
+      node: build
+      port: exec-success
+    dst:
+      node: upload-artifact
+      port: exec
+  - src:
+      node: upload-artifact
+      port: exec-success
+    dst:
+      node: print
+      port: exec
